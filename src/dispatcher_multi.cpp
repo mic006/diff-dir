@@ -24,14 +24,17 @@ along with diff-dir. If not, see <https://www.gnu.org/licenses/>.
 
 #include "dispatcher_multi.h"
 
-DispatcherMultiThread::DispatcherMultiThread(const Context &context, Report &report)
-    : Dispatcher{context, report},
+DispatcherMultiThread::DispatcherMultiThread(const Context &context, std::unique_ptr<Report> report)
+    : Dispatcher{context, std::move(report)},
       m_fileComp{context},
       m_reportQueue{},
       m_fileCompQueue{},
-      m_reportThread{&DispatcherMultiThread::taskReport, this},
+      m_reportThread{},
       m_fileCompThread{&DispatcherMultiThread::taskFileComp, this}
 {
+    if (m_report)
+        // start report thread only when a report object is provided
+        m_reportThread = std::jthread{&DispatcherMultiThread::taskReport, this};
 }
 
 DispatcherMultiThread::~DispatcherMultiThread()
@@ -63,7 +66,8 @@ void DispatcherMultiThread::contentCompareWithPartialReport(ReportEntry &&entry,
     m_fileCompQueue.push(std::move(param));
 
     // and give the future to the report thread to maintain the display order
-    m_reportQueue.push(std::move(entryFuture));
+    if (m_report)
+        m_reportQueue.push(std::move(entryFuture));
 }
 
 void DispatcherMultiThread::taskReport(void)
@@ -81,7 +85,7 @@ void DispatcherMultiThread::taskReport(void)
 
         if (entry.isDifferent())
             // report
-            m_report(std::move(entry));
+            (*m_report)(std::move(entry));
     }
 }
 
@@ -99,9 +103,13 @@ void DispatcherMultiThread::taskFileComp(void)
         auto &param = *paramOpt;
         const bool equalContent = m_fileComp(param.entry.relPath, param.fileSize);
         if (not equalContent)
+        {
             param.entry.setDifference(EntryDifference::Content);
+            checkStatusMode(param.entry);
+        }
 
         // report is now ready: publish the value
-        param.entryPromise.set_value(std::move(param.entry));
+        if (m_report)
+            param.entryPromise.set_value(std::move(param.entry));
     }
 }

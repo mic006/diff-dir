@@ -38,8 +38,8 @@ class ReportEntry;
 class Dispatcher
 {
 public:
-    Dispatcher(const Context &context, Report &report)
-        : ctx{context}, m_report{report} {};
+    Dispatcher(const Context &context, std::unique_ptr<Report> report)
+        : ctx{context}, m_report{std::move(report)} {};
 
     virtual ~Dispatcher() = default;
 
@@ -64,5 +64,5 @@ protected:
     void checkStatusMode(const ReportEntry &entry) const;
 
     const Context &ctx;
-    Report &m_report; ///< report handler
+    std::unique_ptr<Report> m_report; ///< report handler
 };

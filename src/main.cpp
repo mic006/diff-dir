@@ -32,7 +32,7 @@ along with diff-dir. If not, see <https://www.gnu.org/licenses/>.
 #include "dispatcher_multi.h"
 #include "file_comp.h"
 #include "path.h"
-#include "report_console.h"
+#include "report_compact.h"
 
 #ifndef VERSION
 #define VERSION "testbuild"
@@ -41,12 +41,20 @@ along with diff-dir. If not, see <https://www.gnu.org/licenses/>.
 /// Error message prefix
 constexpr const char *error_prefix = "diff-dir error: ";
 
+/// Diff output mode
+enum class OutputMode
+{
+    Compact, ///< compact output, 1 line per diff
+    Status,  ///< no output, return code only
+};
+
 /** Parse arguments and catch exception nicely.
  * 
  * Workaround to https://github.com/jarro2783/cxxopts/issues/146 :
  * use a dedicated function to catch an exception.
  */
-static cxxopts::ParseResult parseArgs(cxxopts::Options &options, int &argc, char **&argv)
+static cxxopts::ParseResult
+parseArgs(cxxopts::Options &options, int &argc, char **&argv)
 try
 {
     cxxopts::ParseResult result = options.parse(argc, argv);
@@ -66,7 +74,8 @@ int main(int argc, char *argv[])
     options.add_options()                                                                                                         //
         ("h,help", "help message", cxxopts::value<bool>())                                                                        //
         ("v,version", "print version", cxxopts::value<bool>())                                                                    //
-        ("s,status", "give no output, return 1 on first identified difference, 0 if no difference found")                         //
+        ("c,compact", "compact output, a single line giving the differences for one path (default)", cxxopts::value<bool>())      //
+        ("s,status", "give no output, return 1 on first identified difference, 0 if no difference found", cxxopts::value<bool>()) //
         ("i,ignore", "ignore paths matching the given pattern(s)", cxxopts::value<std::vector<std::string>>(), "path_pattern")    //
         ("m,metadata", "check and report metadata differences (ownership, permissions)", cxxopts::value<bool>())                  //
         ("t,thread", "use multiple threads to speed-up the comparison", cxxopts::value<bool>())                                   //
@@ -115,18 +124,39 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
+    OutputMode outputMode{OutputMode::Compact};
+    {
+        const bool compact = result["compact"].as<bool>();
+        const bool status = result["status"].as<bool>();
+        if (compact + status > 1)
+        {
+            std::cerr << error_prefix << "invalid output mode, conflicting options requested" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+        if (status)
+            outputMode = OutputMode::Status;
+    }
+
     // prepare diff context
     Context ctx{{result["debug"].as<bool>(),
-                 result["status"].as<bool>(),
                  result["metadata"].as<bool>(),
                  buffSize}};
     ctx.root1 = std::move(root1);
     ctx.root2 = std::move(root2);
-    ReportConsole reportConsole{ctx.settings};
+    std::unique_ptr<Report> report;
+    switch (outputMode)
+    {
+    case OutputMode::Compact:
+        report = std::make_unique<ReportCompact>(ctx.settings);
+        break;
+    case OutputMode::Status:
+        // no report
+        break;
+    }
     if (result["thread"].as<bool>())
-        ctx.dispatcher = std::make_unique<DispatcherMultiThread>(ctx, reportConsole);
+        ctx.dispatcher = std::make_unique<DispatcherMultiThread>(ctx, std::move(report));
     else
-        ctx.dispatcher = std::make_unique<DispatcherMonoThread>(ctx, reportConsole);
+        ctx.dispatcher = std::make_unique<DispatcherMonoThread>(ctx, std::move(report));
     // handle ignore rules
     if (result["ignore"].count() > 0)
     {

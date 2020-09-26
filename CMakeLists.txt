@@ -36,7 +36,7 @@ add_executable(diff-dir
     src/main.cpp
     src/path.cpp
     src/report.cpp
-    src/report_console.cpp
+    src/report_compact.cpp
 )
 target_compile_definitions(diff-dir PUBLIC
     VERSION="${APP_VERSION}"

@@ -19,18 +19,18 @@ along with diff-dir. If not, see <https://www.gnu.org/licenses/>.
 
 /** @file
  *
- * Report to console.
+ * Compact report to stdout/console.
  */
 
 #include <iostream>
 
 #include "context.h"
-#include "report_console.h"
+#include "report_compact.h"
 
 static constexpr char indicatorNoDiff = '-';
 static constexpr const char *separatorIndicatorPath = "  ";
 
-void ReportConsole::operator()(ReportEntry &&reportEntry)
+void ReportCompact::operator()(ReportEntry &&reportEntry)
 {
     if (reportEntry.isDifferent(EntryDifference::EntryType))
     {

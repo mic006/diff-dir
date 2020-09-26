@@ -31,8 +31,8 @@ along with diff-dir. If not, see <https://www.gnu.org/licenses/>.
 class DispatcherMonoThread : public Dispatcher
 {
 public:
-    DispatcherMonoThread(const Context &context, Report &report)
-        : Dispatcher{context, report}, m_fileComp{context} {};
+    DispatcherMonoThread(const Context &context, std::unique_ptr<Report> report)
+        : Dispatcher{context, std::move(report)}, m_fileComp{context} {};
 
     void postFilledReport(ReportEntry &&entry) override;
     void contentCompareWithPartialReport(ReportEntry &&entry, size_t fileSize) override;

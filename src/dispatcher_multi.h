@@ -56,7 +56,7 @@ struct FileCompParam
 class DispatcherMultiThread : public Dispatcher
 {
 public:
-    DispatcherMultiThread(const Context &context, Report &report);
+    DispatcherMultiThread(const Context &context, std::unique_ptr<Report> report);
     ~DispatcherMultiThread() override;
 
     void postFilledReport(ReportEntry &&entry) override;

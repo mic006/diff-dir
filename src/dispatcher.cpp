@@ -26,7 +26,7 @@ along with diff-dir. If not, see <https://www.gnu.org/licenses/>.
 
 void Dispatcher::checkStatusMode(const ReportEntry &entry) const
 {
-    if (ctx.settings.statusOnly and entry.isDifferent())
+    if (not m_report and entry.isDifferent())
         // user requested status only, exit on first reported diff
         exit(EXIT_FAILURE);
 }

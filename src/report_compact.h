@@ -19,17 +19,17 @@ along with diff-dir. If not, see <https://www.gnu.org/licenses/>.
 
 /** @file
  *
- * Report to console.
+ * Compact report to stdout/console.
  */
 
 #pragma once
 
 #include "report.h"
 
-class ReportConsole : public Report
+class ReportCompact : public Report
 {
 public:
-    ReportConsole(const Settings &settings) : Report{settings} {}
+    ReportCompact(const Settings &settings) : Report{settings} {}
 
     void operator()(ReportEntry &&reportEntry) override;
 };

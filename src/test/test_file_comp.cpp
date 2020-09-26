@@ -32,7 +32,6 @@ TEST(FileCompTest, all)
 {
     Context ctx{{false,
                  false,
-                 false,
                  4096 * 16}};
     ctx.root1 = std::move(RootPath{"."}); // use current working directory
     ctx.root2 = std::move(RootPath{"."});

@@ -36,7 +36,6 @@ along with diff-dir. If not, see <https://www.gnu.org/licenses/>.
 struct Settings
 {
     bool debug;               ///< output debug information on stderr
-    bool statusOnly;          ///< only give a status, exit on first difference
     bool checkMetadata;       ///< whether metadata shall be checked for differences
     size_t contentBufferSize; ///< size to be used for buffering file content
 };

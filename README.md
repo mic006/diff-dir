@@ -78,6 +78,7 @@ Option | Description
 -|-
 -h, --help | help message
 -v, --version | print version
+-c, --compact | compact output, a single line giving the differences for one path (default)
 -s, --status | give no output, return 1 on first identified difference, 0 if no difference found
 -i, --ignore path_pattern | ignore paths matching the given pattern - can be set multiple times
 -m, --metadata | check and report metadata differences (ownership, permissions)

@@ -28,7 +28,7 @@ void DispatcherMonoThread::postFilledReport(ReportEntry &&entry)
 {
     checkStatusMode(entry);
 
-    m_report(std::move(entry));
+    (*m_report)(std::move(entry));
 }
 
 void DispatcherMonoThread::contentCompareWithPartialReport(ReportEntry &&entry, size_t fileSize)
