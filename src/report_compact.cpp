@@ -24,8 +24,16 @@ along with diff-dir. If not, see <https://www.gnu.org/licenses/>.
 
 #include <iostream>
 
-#include "context.h"
-#include "report_compact.h"
+#include "report.h"
+
+class ReportCompact : public Report
+{
+public:
+    ReportCompact(const Settings &settings)
+        : Report{settings} {}
+
+    void operator()(ReportEntry &&reportEntry) override;
+};
 
 static constexpr char indicatorNoDiff = '-';
 static constexpr const char *separatorIndicatorPath = "  ";
@@ -62,4 +70,9 @@ void ReportCompact::operator()(ReportEntry &&reportEntry)
                   << contentInd << ownershipInd << permissionsInd //
                   << separatorIndicatorPath << reportEntry.relPath << std::endl;
     }
+}
+
+std::unique_ptr<Report> makeReportCompact(const Settings &settings)
+{
+    return std::make_unique<ReportCompact>(settings);
 }

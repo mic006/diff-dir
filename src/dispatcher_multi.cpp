@@ -22,7 +22,56 @@ along with diff-dir. If not, see <https://www.gnu.org/licenses/>.
  * Multithread dispatcher.
  */
 
-#include "dispatcher_multi.h"
+#include <future>
+#include <thread>
+
+#include "concurrent.h"
+#include "dispatcher.h"
+#include "file_comp.h"
+
+/// Parameters to manage file comparison in a dedicated thread
+struct FileCompParam
+{
+    FileCompParam(ReportEntry &&_entry, size_t _fileSize)
+        : entry{std::move(_entry)}, fileSize{_fileSize} {}
+
+    ~FileCompParam() = default;
+
+    // not copyable (detect unwanted copies)
+    FileCompParam(const FileCompParam &) = delete;
+    FileCompParam &operator=(const FileCompParam &) = delete;
+
+    // movable
+    FileCompParam(FileCompParam &&) noexcept = default;
+    FileCompParam &operator=(FileCompParam &&) noexcept = default;
+
+    std::promise<ReportEntry> entryPromise; ///< promise for the report entry
+    ReportEntry entry;                      ///< report entry pre-filled by diff_dir
+    size_t fileSize;                        ///< common size of both files
+};
+
+/// Multi-threads version of the Dispatcher
+class DispatcherMultiThread : public Dispatcher
+{
+public:
+    DispatcherMultiThread(const Context &context, std::unique_ptr<Report> report);
+    ~DispatcherMultiThread() override;
+
+    void postFilledReport(ReportEntry &&entry) override;
+    void contentCompareWithPartialReport(ReportEntry &&entry, size_t fileSize) override;
+
+private:
+    /// Threaded task managing reports
+    void taskReport(void);
+    /// Threaded task managing file comparison
+    void taskFileComp(void);
+
+    FileCompareContent m_fileComp;                           ///< file content comparison
+    ConcurrentQueue<std::future<ReportEntry>> m_reportQueue; ///< queue for reports
+    ConcurrentQueue<FileCompParam> m_fileCompQueue;          ///< queue for file comparison
+    std::jthread m_reportThread;                             ///< reports handling thread
+    std::jthread m_fileCompThread;                           ///< file comparison handling thread
+};
 
 DispatcherMultiThread::DispatcherMultiThread(const Context &context, std::unique_ptr<Report> report)
     : Dispatcher{context, std::move(report)},
@@ -112,4 +161,9 @@ void DispatcherMultiThread::taskFileComp(void)
         if (m_report)
             param.entryPromise.set_value(std::move(param.entry));
     }
+}
+
+std::unique_ptr<Dispatcher> makeDispatcherMulti(const Context &context, std::unique_ptr<Report> report)
+{
+    return std::make_unique<DispatcherMultiThread>(context, std::move(report));
 }

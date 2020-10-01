@@ -28,11 +28,10 @@ along with diff-dir. If not, see <https://www.gnu.org/licenses/>.
 
 #include "context.h"
 #include "diff_dir.h"
-#include "dispatcher_mono.h"
-#include "dispatcher_multi.h"
+#include "dispatcher.h"
 #include "file_comp.h"
 #include "path.h"
-#include "report_compact.h"
+#include "report.h"
 
 #ifndef VERSION
 #define VERSION "testbuild"
@@ -147,16 +146,16 @@ int main(int argc, char *argv[])
     switch (outputMode)
     {
     case OutputMode::Compact:
-        report = std::make_unique<ReportCompact>(ctx.settings);
+        report = makeReportCompact(ctx.settings);
         break;
     case OutputMode::Status:
         // no report
         break;
     }
     if (result["thread"].as<bool>())
-        ctx.dispatcher = std::make_unique<DispatcherMultiThread>(ctx, std::move(report));
+        ctx.dispatcher = makeDispatcherMulti(ctx, std::move(report));
     else
-        ctx.dispatcher = std::make_unique<DispatcherMonoThread>(ctx, std::move(report));
+        ctx.dispatcher = makeDispatcherMono(ctx, std::move(report));
     // handle ignore rules
     if (result["ignore"].count() > 0)
     {

@@ -105,7 +105,8 @@ class Settings;
 class Report
 {
 public:
-    Report(const Settings &settings) : m_settings{settings} {}
+    Report(const Settings &settings)
+        : m_settings{settings} {}
 
     /** Report a difference.
      */
@@ -114,3 +115,6 @@ public:
 protected:
     const Settings &m_settings;
 };
+
+/// Build a ReportCompact: compact report to stdout/console
+std::unique_ptr<Report> makeReportCompact(const Settings &settings);

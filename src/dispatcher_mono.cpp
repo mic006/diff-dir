@@ -22,7 +22,22 @@ along with diff-dir. If not, see <https://www.gnu.org/licenses/>.
  * Monothread dispatcher.
  */
 
-#include "dispatcher_mono.h"
+#include "dispatcher.h"
+#include "file_comp.h"
+
+/// Single thread version of the Dispatcher
+class DispatcherMonoThread : public Dispatcher
+{
+public:
+    DispatcherMonoThread(const Context &context, std::unique_ptr<Report> report)
+        : Dispatcher{context, std::move(report)}, m_fileComp{context} {};
+
+    void postFilledReport(ReportEntry &&entry) override;
+    void contentCompareWithPartialReport(ReportEntry &&entry, size_t fileSize) override;
+
+private:
+    FileCompareContent m_fileComp; ///< file content comparison
+};
 
 void DispatcherMonoThread::postFilledReport(ReportEntry &&entry)
 {
@@ -43,4 +58,9 @@ void DispatcherMonoThread::contentCompareWithPartialReport(ReportEntry &&entry, 
     // post report
     if (entry.isDifferent())
         postFilledReport(std::move(entry));
+}
+
+std::unique_ptr<Dispatcher> makeDispatcherMono(const Context &context, std::unique_ptr<Report> report)
+{
+    return std::make_unique<DispatcherMonoThread>(context, std::move(report));
 }

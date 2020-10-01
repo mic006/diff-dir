@@ -66,3 +66,9 @@ protected:
     const Context &ctx;
     std::unique_ptr<Report> m_report; ///< report handler
 };
+
+/// Build a monothread dispatcher
+std::unique_ptr<Dispatcher> makeDispatcherMono(const Context &context, std::unique_ptr<Report> report);
+
+/// Build a multithread dispatcher
+std::unique_ptr<Dispatcher> makeDispatcherMulti(const Context &context, std::unique_ptr<Report> report);
