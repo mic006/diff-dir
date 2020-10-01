@@ -108,6 +108,16 @@ public:
     Report(const Settings &settings)
         : m_settings{settings} {}
 
+    virtual ~Report() = default;
+
+    // not copyable
+    Report(const Report &) = delete;
+    Report &operator=(const Report &) = delete;
+
+    // not movable
+    Report(Report &&) noexcept = delete;
+    Report &operator=(Report &&) noexcept = delete;
+
     /** Report a difference.
      */
     virtual void operator()(ReportEntry &&reportEntry) = 0;
