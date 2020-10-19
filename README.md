@@ -1,5 +1,13 @@
 # diff-dir
 
+- [Purpose](#Purpose)
+- [Features](#Features)
+- [Output](#Output)
+- [Interactive mode](#Interactive-mode)
+- [Options](#Options)
+- [Build dependencies](#Build-dependencies)
+- [Thanks](#Thanks)
+
 ## Purpose
 
 `diff-dir` is a command line tool to compare 2 directories and get the differences.
