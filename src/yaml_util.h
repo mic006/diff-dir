@@ -19,30 +19,20 @@ along with diff-dir. If not, see <https://www.gnu.org/licenses/>.
 
 /** @file
  *
- * Test file_comp.cpp.
+ * YAML utilities.
  */
 
-#include <gtest/gtest.h>
+#pragma once
 
-#include "../file_comp.h"
-#include "../report.h"
+#include <yaml-cpp/yaml.h>
 
-/// Test with same content
-TEST(FileCompTest, all)
-{
-    YAML::Node config{};
-    Context ctx{{false,
-                 false,
-                 4096 * 16},
-                config};
-    for (int side = 0; side < 2; side++)
-        ctx.root[side] = std::move(RootPath{"."}); // use current working directory
-    FileCompareContent fileComp{ctx};
-
-    const std::string relPath = "build/test-diff-dir";
-    struct stat statbuff;
-    ctx.root[0].lstat(relPath, statbuff);
-    const size_t size = statbuff.st_size;
-
-    EXPECT_TRUE(fileComp(relPath, size));
-}
+/** Merge 2 nodes recursively.
+ * The result will have the same schema as base, with content:
+ * - from upper when a value exists
+ * - from base otherwise.
+ * 
+ * @param[in] base   yaml tree, provides schema and default values for the merge
+ * @param[in] upper  yaml tree, provides values to override base
+ * @return yaml tree, same schema as base, values from upper or base by default
+ */
+YAML::Node yaml_merge(const YAML::Node base, const YAML::Node upper);

@@ -1,0 +1,67 @@
+# report interactive settings
+interactive:
+  # ui related colors / text effects
+  ui:
+    # normal settings
+    normal:
+      fg: 0xAAAAAA
+      bg: 0
+    # header settings
+    header:
+      fg: 0xFFFFFF
+      bg: 0x1976d2
+      effect: 0x4
+    # footer settings
+    footer:
+      fg: 0xFFFFFF
+      bg: 0x004ba0
+      effect: 0
+    # selected item foreground color
+    selectedFg: 0
+    # selected item background color
+    selectedBg: 0x63a4ff
+    # separator color
+    separator: 0x004ba0
+    # color to display file type
+    fileType: 0x448aff
+    # display a difference, for left side content
+    differenceL:
+      fg: 0xf44336
+      bg: 0x330000
+    # display a difference, for right side content
+    differenceR:
+      fg: 0x00e676
+      bg: 0x003300
+    # alert user on important changes (different file type, backward mtime)
+    warning:
+      fg: 0
+      bg: 0xff5252
+    # background color for metadata info in details window
+    metadataBg: 0x000f33
+
+  # minimum width of the screen to use left/right view (otherwise top/bottom)
+  minWidthForLeftRightView: 160
+
+  # cycle time of the ui, to refresh the list of found differences
+  cycleTimeMs: 100
+
+  # spinner to show that the diff-dir scan is still on-going
+  spinner:
+    # strings for the spinner, displayed cyclically
+    strings: ["▀ ", " ▀", " ▄", "▄ "]
+    # time for each character (must be a multiple of cycleTimeMs)
+    stepTimeMs: 200
+
+  # management of text content
+  text:
+    # percentage of difference between files for different display:
+    # - below, diff is displayed following the diff algo
+    # - above, files are considered 100% different (everything suppressed and added)
+    diffCommonThreshold: 50
+    # size to expand tabs
+    tabSize: 4
+    # replace some special chars for display
+    replacement:
+      carriageReturn: ◄
+      escape: ▲
+      tab: ►

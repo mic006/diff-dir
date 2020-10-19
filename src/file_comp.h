@@ -34,15 +34,16 @@ public:
     FileCompareContent(const Context &context)
         : ctx{context},
           // TODO: use std::make_unique_for_overwrite when available
-          m_contentBuff1{new uint8_t[context.settings.contentBufferSize]},
-          m_contentBuff2{new uint8_t[context.settings.contentBufferSize]}
+          m_contentBuffL{new uint8_t[context.settings.contentBufferSize]},
+          m_contentBuffR{new uint8_t[context.settings.contentBufferSize]}
     {
     }
 
     ~FileCompareContent() = default;
 
     // copyable
-    FileCompareContent(const FileCompareContent &other) : FileCompareContent{other.ctx}
+    FileCompareContent(const FileCompareContent &other)
+        : FileCompareContent{other.ctx}
     {
     }
     // not assign copyable (no default constructor)
@@ -51,8 +52,8 @@ public:
     // movable
     FileCompareContent(FileCompareContent &&other) noexcept
         : ctx{other.ctx},
-          m_contentBuff1{std::exchange(other.m_contentBuff1, nullptr)},
-          m_contentBuff2{std::exchange(other.m_contentBuff2, nullptr)}
+          m_contentBuffL{std::exchange(other.m_contentBuffL, nullptr)},
+          m_contentBuffR{std::exchange(other.m_contentBuffR, nullptr)}
     {
     }
     // not assign movable (no default constructor)
@@ -67,5 +68,5 @@ public:
 
 private:
     const Context &ctx;
-    std::unique_ptr<uint8_t[]> m_contentBuff1, m_contentBuff2; ///< buffer for file content on bith sides
+    std::unique_ptr<uint8_t[]> m_contentBuffL, m_contentBuffR; ///< buffer for file content on both sides
 };

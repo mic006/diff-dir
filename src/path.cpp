@@ -23,29 +23,32 @@ along with diff-dir. If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <algorithm>
+#include <ctime>
 #include <dirent.h>
+#include <grp.h>
+#include <pwd.h>
 
 #include "path.h"
 
 namespace dt_lut
 {
-    // let the compiler build the LookUp Table
-    constexpr uint32_t dtValues[] = {DT_FIFO, DT_CHR, DT_DIR, DT_BLK, DT_REG, DT_LNK, DT_SOCK};
-    constexpr uint32_t maxDt = *std::max_element(std::begin(dtValues), std::end(dtValues));
-    typedef std::array<FileType::EnumType, maxDt + 1> dt_lut_type;
+// let the compiler build the LookUp Table
+constexpr uint32_t dtValues[] = {DT_FIFO, DT_CHR, DT_DIR, DT_BLK, DT_REG, DT_LNK, DT_SOCK};
+constexpr uint32_t maxDt = *std::max_element(std::begin(dtValues), std::end(dtValues));
+typedef std::array<FileType::EnumType, maxDt + 1> dt_lut_type;
 
-    constexpr dt_lut_type getLut()
-    {
-        dt_lut_type lut{};
-        lut[DT_FIFO] = FileType::Fifo;
-        lut[DT_CHR] = FileType::Character;
-        lut[DT_DIR] = FileType::Directory;
-        lut[DT_BLK] = FileType::Block;
-        lut[DT_REG] = FileType::Regular;
-        lut[DT_LNK] = FileType::Symlink;
-        lut[DT_SOCK] = FileType::Socket;
-        return lut;
-    };
+constexpr dt_lut_type getLut()
+{
+    dt_lut_type lut{};
+    lut[DT_FIFO] = FileType::Fifo;
+    lut[DT_CHR] = FileType::Character;
+    lut[DT_DIR] = FileType::Directory;
+    lut[DT_BLK] = FileType::Block;
+    lut[DT_REG] = FileType::Regular;
+    lut[DT_LNK] = FileType::Symlink;
+    lut[DT_SOCK] = FileType::Socket;
+    return lut;
+};
 } // namespace dt_lut
 
 /// Convert DT to FileType
@@ -55,6 +58,29 @@ static FileType::EnumType filetype_from_dt(uint8_t dt)
     if (dt <= dt_lut::maxDt)
         return lut[dt];
     return FileType::Unknown;
+}
+
+std::string ScopedFd::getContent()
+{
+    off_t size = ::lseek(fd, 0, SEEK_END);
+    if (size == (off_t)-1)
+    {
+        log_errno("lseek END");
+        return {};
+    }
+    // start from beginning
+    if (::lseek(fd, 0, SEEK_SET) != 0)
+    {
+        log_errno("lseek BEGIN");
+        return {};
+    }
+    std::string buffer(size, '\0');
+    if (::read(fd, buffer.data(), buffer.size()) != size)
+    {
+        log_errno("read whole");
+        return {};
+    }
+    return buffer;
 }
 
 void RootPath::getSortedDirContent(const std::string &relPath, dir_content_type &result) const
@@ -90,4 +116,30 @@ void RootPath::getSortedDirContent(const std::string &relPath, dir_content_type 
 
     // sort by filename
     std::sort(result.begin(), result.end());
+}
+
+const std::string &UidGidNameReader::getUidName(uid_t uid)
+{
+    // access / create element
+    std::string &name = m_uidNames[uid];
+    if (not name.empty())
+        return name; // name already known
+
+    // need to retrieve the name
+    const struct passwd *passwdPtr = ::getpwuid(uid);
+    name = passwdPtr == nullptr ? std::to_string(uid) : passwdPtr->pw_name;
+    return name;
+}
+
+const std::string &UidGidNameReader::getGidName(gid_t gid)
+{
+    // access / create element
+    std::string &name = m_gidNames[gid];
+    if (not name.empty())
+        return name; // name already known
+
+    // need to retrieve the name
+    const struct group *groupPtr = ::getgrgid(gid);
+    name = groupPtr == nullptr ? std::to_string(gid) : groupPtr->gr_name;
+    return name;
 }

@@ -43,8 +43,9 @@ constexpr const char *error_prefix = "diff-dir error: ";
 /// Diff output mode
 enum class OutputMode
 {
-    Compact, ///< compact output, 1 line per diff
-    Status,  ///< no output, return code only
+    Interactive, ///< interactive output
+    Compact,     ///< compact output, 1 line per diff
+    Status,      ///< no output, return code only
 };
 
 /** Parse arguments and catch exception nicely.
@@ -73,19 +74,19 @@ int main(int argc, char *argv[])
     options.add_options()                                                                                                         //
         ("h,help", "help message", cxxopts::value<bool>())                                                                        //
         ("v,version", "print version", cxxopts::value<bool>())                                                                    //
-        ("c,compact", "compact output, a single line giving the differences for one path (default)", cxxopts::value<bool>())      //
+        ("c,compact", "compact output, a single line giving the differences for one path", cxxopts::value<bool>())                //
         ("s,status", "give no output, return 1 on first identified difference, 0 if no difference found", cxxopts::value<bool>()) //
         ("i,ignore", "ignore paths matching the given pattern(s)", cxxopts::value<std::vector<std::string>>(), "path_pattern")    //
         ("m,metadata", "check and report metadata differences (ownership, permissions)", cxxopts::value<bool>())                  //
         ("t,thread", "use multiple threads to speed-up the comparison", cxxopts::value<bool>())                                   //
         ("B,buffer", "size of the buffers used for content comparison", cxxopts::value<size_t>()->default_value("65536"), "size") //
         ("d,debug", "print debug information during the diff", cxxopts::value<bool>())                                            //
-        ("dir1", "first directory", cxxopts::value<std::string>())                                                                //
-        ("dir2", "second directory", cxxopts::value<std::string>())                                                               //
+        ("dirL", "left directory", cxxopts::value<std::string>())                                                                 //
+        ("dirR", "right directory", cxxopts::value<std::string>())                                                                //
         ;
 
-    options.parse_positional({"dir1", "dir2"});
-    options.positional_help("dir1 dir2");
+    options.parse_positional({"dirL", "dirR"});
+    options.positional_help("dirL dirR");
 
     const auto result = parseArgs(options, argc, argv);
 
@@ -102,15 +103,15 @@ int main(int argc, char *argv[])
         return EXIT_SUCCESS;
     }
 
-    if (result["dir1"].count() == 0 or result["dir2"].count() == 0)
+    if (result["dirL"].count() == 0 or result["dirR"].count() == 0)
     {
         std::cerr << error_prefix << "missing mandatory arguments" << std::endl;
         exit(EXIT_FAILURE);
     }
 
-    RootPath root1{result["dir1"].as<std::string>()};
-    RootPath root2{result["dir2"].as<std::string>()};
-    if (!root1.isValid() or !root2.isValid())
+    RootPath rootL{result["dirL"].as<std::string>()};
+    RootPath rootR{result["dirR"].as<std::string>()};
+    if (!rootL.isValid() or !rootR.isValid())
     {
         std::cerr << error_prefix << "invalid paths, need 2 directories" << std::endl;
         exit(EXIT_FAILURE);
@@ -125,6 +126,10 @@ int main(int argc, char *argv[])
 
     OutputMode outputMode{OutputMode::Compact};
     {
+        if (::isatty(STDIN_FILENO) and ::isatty(STDOUT_FILENO))
+            // default to interactive when running from a tty
+            outputMode = OutputMode::Interactive;
+
         const bool compact = result["compact"].as<bool>();
         const bool status = result["status"].as<bool>();
         if (compact + status > 1)
@@ -132,21 +137,28 @@ int main(int argc, char *argv[])
             std::cerr << error_prefix << "invalid output mode, conflicting options requested" << std::endl;
             exit(EXIT_FAILURE);
         }
-        if (status)
+        if (compact)
+            outputMode = OutputMode::Compact;
+        else if (status)
             outputMode = OutputMode::Status;
     }
 
     // prepare diff context
+    YAML::Node config = getConfig();
     Context ctx{{result["debug"].as<bool>(),
                  result["metadata"].as<bool>(),
-                 buffSize}};
-    ctx.root1 = std::move(root1);
-    ctx.root2 = std::move(root2);
+                 buffSize},
+                config};
+    ctx.root[0] = std::move(rootL);
+    ctx.root[1] = std::move(rootR);
     std::unique_ptr<Report> report;
     switch (outputMode)
     {
+    case OutputMode::Interactive:
+        report = makeReportInteractive(ctx);
+        break;
     case OutputMode::Compact:
-        report = makeReportCompact(ctx.settings);
+        report = makeReportCompact(ctx);
         break;
     case OutputMode::Status:
         // no report

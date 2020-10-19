@@ -74,13 +74,16 @@ public:
     }
 
     /** Get one element from the queue.
-     * May block until one item is available.
+     * @param[in] wait whether the call shall be blocking if no element is available
+     * @return first element retrieved from the queue,
+     *         or nullopt if queue is empty (wait=false) or closed
      */
-    std::optional<T> get()
+    std::optional<T> get(bool wait = true)
     {
         // wait for one element and get it
         std::unique_lock<std::mutex> lock(m_mutex);
-        m_condVar.wait(lock, [this]() { return waitPredicate(); });
+        if (wait)
+            m_condVar.wait(lock, [this]() { return waitPredicate(); });
 
         if (m_queue.empty())
             return {};
@@ -88,6 +91,13 @@ public:
         T t = std::move(m_queue.front());
         m_queue.pop();
         return std::optional{std::move(t)};
+    }
+
+    /// Whether the queue is empty and closed
+    bool isExhausted() const
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        return m_closed and m_queue.empty();
     }
 
 private:
@@ -100,7 +110,7 @@ private:
     }
 
     bool m_closed{false};              ///< state of the queue
-    std::mutex m_mutex;                ///< mutex for m_queue and m_condVar
+    mutable std::mutex m_mutex;        ///< mutex for m_queue and m_condVar
     std::condition_variable m_condVar; ///< condition variable to unlock waiter
     std::queue<T> m_queue;             ///< queue of objects
 };

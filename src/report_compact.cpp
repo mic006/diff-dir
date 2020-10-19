@@ -26,11 +26,12 @@ along with diff-dir. If not, see <https://www.gnu.org/licenses/>.
 
 #include "report.h"
 
+/// Compact report to stdout/console.
 class ReportCompact : public Report
 {
 public:
-    ReportCompact(const Settings &settings)
-        : Report{settings} {}
+    ReportCompact(const Context &_ctx)
+        : Report{_ctx} {}
 
     void operator()(ReportEntry &&reportEntry) override;
 };
@@ -42,8 +43,8 @@ void ReportCompact::operator()(ReportEntry &&reportEntry)
 {
     if (reportEntry.isDifferent(EntryDifference::EntryType))
     {
-        std::cout << FileType::repr(reportEntry.fileType1)          //
-                  << " ! " << FileType::repr(reportEntry.fileType2) //
+        std::cout << FileType::repr(reportEntry.file[0].type)          //
+                  << " ! " << FileType::repr(reportEntry.file[1].type) //
                   << separatorIndicatorPath << reportEntry.relPath << std::endl;
     }
     else
@@ -53,26 +54,26 @@ void ReportCompact::operator()(ReportEntry &&reportEntry)
                                     ? 'c'
                                     : reportEntry.isDifferent(EntryDifference::Size) //
                                           ? 's'
-                                          : reportEntry.fileType1 == FileType::Directory //
+                                          : reportEntry.file[0].type == FileType::Directory //
                                                 ? ' '
                                                 : indicatorNoDiff;
-        const char ownershipInd = m_settings.checkMetadata                                  //
+        const char ownershipInd = ctx.settings.checkMetadata                                //
                                       ? reportEntry.isDifferent(EntryDifference::Ownership) //
                                             ? 'o'
                                             : indicatorNoDiff
                                       : ' ';
-        const char permissionsInd = m_settings.checkMetadata and not(reportEntry.fileType1 == FileType::Symlink) //
-                                        ? reportEntry.isDifferent(EntryDifference::Permissions)                  //
+        const char permissionsInd = ctx.settings.checkMetadata and not(reportEntry.file[0].type == FileType::Symlink) //
+                                        ? reportEntry.isDifferent(EntryDifference::Permissions)                       //
                                               ? 'p'
                                               : indicatorNoDiff
                                         : ' ';
-        std::cout << FileType::repr(reportEntry.fileType1) << " " //
-                  << contentInd << ownershipInd << permissionsInd //
+        std::cout << FileType::repr(reportEntry.file[0].type) << " " //
+                  << contentInd << ownershipInd << permissionsInd    //
                   << separatorIndicatorPath << reportEntry.relPath << std::endl;
     }
 }
 
-std::unique_ptr<Report> makeReportCompact(const Settings &settings)
+std::unique_ptr<Report> makeReportCompact(const Context &ctx)
 {
-    return std::make_unique<ReportCompact>(settings);
+    return std::make_unique<ReportCompact>(ctx);
 }

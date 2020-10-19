@@ -38,29 +38,42 @@ enum class EntryDifference : int
     Size,        ///< different size
 };
 
+/// One file in the report entry
+struct FileEntry
+{
+    FileEntry()
+        : type(FileType::NoFile), symlinkTarget{} {}
+
+    void set(const RootPath &root, const std::string &relPath, FileType::EnumType fileType)
+    {
+        type = fileType;
+        root.lstat(relPath, lstat);
+        if (fileType == FileType::Symlink)
+            symlinkTarget = root.readSymlink(relPath, lstat.st_size);
+    }
+
+    /// Permissions to string
+    std::string permissions() const;
+
+    /// File size to string
+    std::string size() const;
+
+    /// Time to string
+    std::string mtime() const;
+
+    FileType::EnumType type;   ///< type of the file
+    struct stat lstat;         ///< lstat of the file
+    std::string symlinkTarget; ///< symlink target when type == Symlink
+};
+
 /// Entry to report a difference
 struct ReportEntry
 {
-    /// Constructor for a file with same type on both sides
-    ReportEntry(const std::string &_relPath,
-                const FileType::EnumType &_fileType)
+    ReportEntry(const std::string &_relPath)
         : relPath{_relPath},
-          fileType1{_fileType},
-          fileType2{FileType::NoFile},
-          diffBitmap{0}
+          diffBitmap{0},
+          file{}
     {
-    }
-
-    /// Constructor for a file with different types (or existing on a single side)
-    ReportEntry(const std::string &_relPath,
-                const FileType::EnumType &_fileType1,
-                const FileType::EnumType &_fileType2)
-        : relPath{_relPath},
-          fileType1{_fileType1},
-          fileType2{_fileType2},
-          diffBitmap{0}
-    {
-        setDifference(EntryDifference::EntryType);
     }
 
     ~ReportEntry() = default;
@@ -94,19 +107,19 @@ struct ReportEntry
         diffBitmap = 0;
     }
 
-    std::string relPath;                     ///< relative path of files being compared
-    FileType::EnumType fileType1, fileType2; ///< type of the files being compared
-    uint32_t diffBitmap;                     ///< bitmap of EntryDifferences, indicating all the differences between left/right sides
+    std::string relPath; ///< relative path of files being compared
+    uint32_t diffBitmap; ///< bitmap of EntryDifferences, indicating all the differences between left/right sides
+    FileEntry file[2];   ///< information of the file on each side
 };
 
 // forward reference
-class Settings;
+class Context;
 
 class Report
 {
 public:
-    Report(const Settings &settings)
-        : m_settings{settings} {}
+    Report(const Context &_ctx)
+        : ctx{_ctx} {}
 
     virtual ~Report() = default;
 
@@ -123,8 +136,11 @@ public:
     virtual void operator()(ReportEntry &&reportEntry) = 0;
 
 protected:
-    const Settings &m_settings;
+    const Context &ctx; ///< context for the comparison
 };
 
 /// Build a ReportCompact: compact report to stdout/console
-std::unique_ptr<Report> makeReportCompact(const Settings &settings);
+std::unique_ptr<Report> makeReportCompact(const Context &ctx);
+
+/// Build a ReportInteractive: interactive terminal application
+std::unique_ptr<Report> makeReportInteractive(const Context &ctx);

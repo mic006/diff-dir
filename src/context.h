@@ -27,6 +27,7 @@ along with diff-dir. If not, see <https://www.gnu.org/licenses/>.
 #include <functional>
 #include <memory>
 #include <optional>
+#include <yaml-cpp/yaml.h>
 
 #include "dispatcher.h"
 #include "ignore.h"
@@ -46,19 +47,36 @@ class Dispatcher;
 /// type for function check if 2 files have the same content
 typedef std::function<bool(const std::string &relPath, size_t fileSize)> comp_file_fct_type;
 
+/// Side
+enum class Side : int
+{
+    Left = 0,
+    Right,
+};
+
 /// Context with handlers
 class Context
 {
 public:
-    Context(const Settings &_settings)
+    Context(const Settings &_settings, const YAML::Node &config)
         : settings{_settings},
+          cfg{config},
           dispatcher{},
           ignoreFilter{}
     {
     }
 
     const Settings settings;                  ///< settings of the diff
-    RootPath root1, root2;                    ///< root on left and right sides
+    const YAML::Node &cfg;                    ///< user configuration
+    RootPath root[2];                         ///< root on left and right sides
     std::unique_ptr<Dispatcher> dispatcher;   ///< dispatcher for report and file comparison
     std::optional<IgnoreFilter> ignoreFilter; ///< filter to ignore some paths during the diff
 };
+
+/** Get the yaml configuration.
+ * The returned configuration is built from:
+ * - the default settings embedded in the source code
+ * - overriden by the system settings
+ * - overriden by the user settings
+ */
+YAML::Node getConfig();

@@ -26,6 +26,7 @@ along with diff-dir. If not, see <https://www.gnu.org/licenses/>.
 
 #include <fcntl.h>
 #include <limits.h>
+#include <map>
 #include <string>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -90,8 +91,10 @@ struct ScopedFd
         return ScopedFd{fd};
     }
 
-    ScopedFd() : fd{-1} {}
-    ScopedFd(int _fd) : fd{_fd} {}
+    ScopedFd()
+        : fd{-1} {}
+    ScopedFd(int _fd)
+        : fd{_fd} {}
     ~ScopedFd()
     {
         if (fd >= 0)
@@ -117,6 +120,9 @@ struct ScopedFd
     {
         return fd >= 0;
     }
+
+    /// Get file content as string
+    std::string getContent();
 
     int fd; ///< file handle
 };
@@ -147,7 +153,7 @@ struct RootPath : public ScopedFd
 {
     RootPath() = default;
     RootPath(const std::string rootPath)
-        : ScopedFd(ScopedFd::open(rootPath, O_RDONLY | O_DIRECTORY | O_PATH))
+        : ScopedFd(ScopedFd::open(rootPath, O_RDONLY | O_DIRECTORY | O_PATH)), path{rootPath}
     {
     }
     ~RootPath() = default;
@@ -193,6 +199,8 @@ struct RootPath : public ScopedFd
         buff[res] = '\0';
         return std::string(buff);
     }
+
+    std::string path; ///< filesystem path
 };
 
 // Timespec comparisons
@@ -204,3 +212,18 @@ inline bool operator!=(const struct timespec &lhs, const struct timespec &rhs)
 {
     return !operator==(lhs, rhs);
 }
+
+/// Convert uid to gid to name
+class UidGidNameReader
+{
+public:
+    /// Get the name of the given uid
+    const std::string &getUidName(uid_t uid);
+
+    /// Get the name of the given gid
+    const std::string &getGidName(gid_t gid);
+
+private:
+    std::map<uid_t, std::string> m_uidNames; ///< map uid to name
+    std::map<gid_t, std::string> m_gidNames; ///< map gid to name
+};

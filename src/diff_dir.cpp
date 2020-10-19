@@ -37,8 +37,7 @@ struct DiffDir
 {
     DiffDir(const Context &_ctx)
         : ctx{_ctx},
-          dirContent1{},
-          dirContent2{},
+          dirContent{},
           dirStack{},
           currDirStack{}
     {
@@ -50,11 +49,13 @@ struct DiffDir
 
     /** Handle an element existing only on one side.
      * 
-     * @param[in] relPath relative path to entry
-     * @param[in] fileType1 type of file on left side
-     * @param[in] fileType2 type of file on right side
+     * @param[in] relPath   relative path to entry
+     * @param[in] fileType  type of file
+     * @param[in] side      which side the file is present
      */
-    inline void handle_single_side_entry(const std::string &relPath, const FileType::EnumType &fileType1, const FileType::EnumType &fileType2);
+    inline void handle_single_side_entry(const std::string &relPath,
+                                         FileType::EnumType fileType,
+                                         Side side);
 
     /** Get the (sorted) content of both directories.
      * 
@@ -68,10 +69,10 @@ struct DiffDir
      */
     void compare_dirs(const std::string &dirPath);
 
-    const Context &ctx;                        ///< context for the comparison
-    dir_content_type dirContent1, dirContent2; ///< content of the current directories on both sides
-    std::stack<std::string> dirStack;          ///< relPath of directories to compare
-    std::stack<std::string> currDirStack;      ///< stack of sub-directories of the current directory
+    const Context &ctx;                   ///< context for the comparison
+    dir_content_type dirContent[2];       ///< content of the current directories on both sides
+    std::stack<std::string> dirStack;     ///< relPath of directories to compare
+    std::stack<std::string> currDirStack; ///< stack of sub-directories of the current directory
 };
 
 static inline std::string make_path(const std::string &dirPath, const std::string &filename)
@@ -81,7 +82,7 @@ static inline std::string make_path(const std::string &dirPath, const std::strin
     return dirPath + "/" + filename;
 }
 
-void DiffDir::handle_single_side_entry(const std::string &relPath, const FileType::EnumType &fileType1, const FileType::EnumType &fileType2)
+void DiffDir::handle_single_side_entry(const std::string &relPath, FileType::EnumType fileType, Side side)
 {
     if (ctx.ignoreFilter.has_value() and ctx.ignoreFilter->isIgnored(relPath))
     {
@@ -92,7 +93,10 @@ void DiffDir::handle_single_side_entry(const std::string &relPath, const FileTyp
     }
     else
     {
-        ReportEntry reportEntry{relPath, fileType1, fileType2};
+        ReportEntry reportEntry{relPath};
+        reportEntry.setDifference(EntryDifference::EntryType);
+        FileEntry &file = reportEntry.file[int(side)];
+        file.set(ctx.root[int(side)], relPath, fileType);
         ctx.dispatcher->postFilledReport(std::move(reportEntry));
     }
 }
@@ -100,13 +104,13 @@ void DiffDir::handle_single_side_entry(const std::string &relPath, const FileTyp
 void DiffDir::get_dirs_content(const std::string &dirPath)
 {
     // get directories content
-    ctx.root1.getSortedDirContent(dirPath, dirContent1);
-    ctx.root2.getSortedDirContent(dirPath, dirContent2);
+    for (int side = 0; side < 2; side++)
+        ctx.root[side].getSortedDirContent(dirPath, dirContent[side]);
 
     if (ctx.settings.debug)
     {
         std::cerr << "Dir: '" << dirPath << "' "
-                  << dirContent1.size() << " elem <-> " << dirContent2.size() << " elem"
+                  << dirContent[0].size() << " elem <-> " << dirContent[1].size() << " elem"
                   << std::endl;
     }
 }
@@ -114,27 +118,27 @@ void DiffDir::get_dirs_content(const std::string &dirPath)
 void DiffDir::compare_dirs(const std::string &dirPath)
 {
     // go through the 2 sorted directory entries
-    auto itDir1 = dirContent1.cbegin();
-    auto itDir2 = dirContent2.cbegin();
+    auto itDirL = dirContent[0].cbegin();
+    auto itDirR = dirContent[1].cbegin();
 
-    while (itDir1 != dirContent1.cend() and itDir2 != dirContent2.cend())
+    while (itDirL != dirContent[0].cend() and itDirR != dirContent[1].cend())
     {
-        const std::string &name1 = itDir1->filename;
-        const std::string &name2 = itDir2->filename;
+        const std::string &nameL = itDirL->filename;
+        const std::string &nameR = itDirR->filename;
 
-        if (name1 < name2)
+        if (nameL < nameR)
         {
-            handle_single_side_entry(make_path(dirPath, name1), itDir1->fileType, FileType::NoFile);
-            itDir1++;
+            handle_single_side_entry(make_path(dirPath, nameL), itDirL->fileType, Side::Left);
+            itDirL++;
         }
-        else if (name1 > name2)
+        else if (nameL > nameR)
         {
-            handle_single_side_entry(make_path(dirPath, name2), FileType::NoFile, itDir2->fileType);
-            itDir2++;
+            handle_single_side_entry(make_path(dirPath, nameR), itDirR->fileType, Side::Right);
+            itDirR++;
         }
-        else // name1 == name2
+        else // nameL == nameR
         {
-            const std::string relPath = make_path(dirPath, name1);
+            const std::string relPath = make_path(dirPath, nameL);
             if (ctx.ignoreFilter.has_value() and ctx.ignoreFilter->isIgnored(relPath))
             {
                 if (ctx.settings.debug)
@@ -144,42 +148,40 @@ void DiffDir::compare_dirs(const std::string &dirPath)
             }
             else
             {
-                const FileType::EnumType &fileType1 = itDir1->fileType;
-                const FileType::EnumType &fileType2 = itDir2->fileType;
-                if (fileType1 != fileType2)
+                const FileType::EnumType fileTypeL = itDirL->fileType;
+                const FileType::EnumType fileTypeR = itDirR->fileType;
+                ReportEntry reportEntry{relPath};
+                reportEntry.file[0].set(ctx.root[0], relPath, fileTypeL);
+                reportEntry.file[1].set(ctx.root[1], relPath, fileTypeR);
+
+                if (fileTypeL != fileTypeR)
                 {
                     // type mismatch
-                    ReportEntry reportEntry{relPath, fileType1, fileType2};
+                    reportEntry.setDifference(EntryDifference::EntryType);
                     ctx.dispatcher->postFilledReport(std::move(reportEntry));
                 }
                 else
                 {
                     // same filetype
-                    ReportEntry reportEntry{relPath, fileType1};
-
-                    struct stat lstat1;
-                    struct stat lstat2;
-                    ctx.root1.lstat(relPath, lstat1);
-                    ctx.root2.lstat(relPath, lstat2);
-
                     // compare metadata
                     if (ctx.settings.checkMetadata)
                     {
                         // check owership
-                        if (lstat1.st_uid != lstat2.st_uid or lstat1.st_gid != lstat2.st_gid)
+                        if (reportEntry.file[0].lstat.st_uid != reportEntry.file[1].lstat.st_uid or
+                            reportEntry.file[0].lstat.st_gid != reportEntry.file[1].lstat.st_gid)
                         {
                             reportEntry.setDifference(EntryDifference::Ownership);
                         }
 
                         // check permissions
-                        if (lstat1.st_mode != lstat2.st_mode)
+                        if (reportEntry.file[0].lstat.st_mode != reportEntry.file[1].lstat.st_mode)
                         {
                             reportEntry.setDifference(EntryDifference::Permissions);
                         }
                     }
 
                     // comparison based on filetype
-                    switch (fileType1)
+                    switch (fileTypeL)
                     {
                     case FileType::Directory:
                         // directories: add to queue for comparison
@@ -188,12 +190,13 @@ void DiffDir::compare_dirs(const std::string &dirPath)
 
                     case FileType::Regular:
                         // regular files: compare size, m_time then content
-                        if (lstat1.st_size != lstat2.st_size)
+                        if (reportEntry.file[0].lstat.st_size != reportEntry.file[1].lstat.st_size)
                         {
                             // size is different
                             reportEntry.setDifference(EntryDifference::Size);
                         }
-                        else if (lstat1.st_size > 0 and lstat1.st_mtim != lstat2.st_mtim)
+                        else if (reportEntry.file[0].lstat.st_size > 0 and
+                                 reportEntry.file[0].lstat.st_mtim != reportEntry.file[1].lstat.st_mtim)
                         {
                             /* m_time are different, but files have the same size (> 0, with real content)
                              * => check file content to see whether they are really different
@@ -202,7 +205,7 @@ void DiffDir::compare_dirs(const std::string &dirPath)
                             {
                                 std::cerr << "File with same size but different m_time, checking content: " << relPath << std::endl;
                             }
-                            ctx.dispatcher->contentCompareWithPartialReport(std::move(reportEntry), lstat1.st_size);
+                            ctx.dispatcher->contentCompareWithPartialReport(std::move(reportEntry), reportEntry.file[0].lstat.st_size);
                             // report has been done, clear so that it is not done twice
                             reportEntry.clear();
                         }
@@ -211,9 +214,7 @@ void DiffDir::compare_dirs(const std::string &dirPath)
                     case FileType::Symlink:
                     {
                         // symlinks: compare the target names
-                        const std::string target1 = ctx.root1.readSymlink(relPath, lstat1.st_size);
-                        const std::string target2 = ctx.root2.readSymlink(relPath, lstat2.st_size);
-                        if (target1 != target2)
+                        if (reportEntry.file[0].symlinkTarget != reportEntry.file[1].symlinkTarget)
                         {
                             reportEntry.setDifference(EntryDifference::Content);
                         }
@@ -231,21 +232,21 @@ void DiffDir::compare_dirs(const std::string &dirPath)
                     }
                 }
             }
-            itDir1++;
-            itDir2++;
+            itDirL++;
+            itDirR++;
         }
     }
 
     // process remaining items on one side or the other
-    while (itDir1 != dirContent1.cend())
+    while (itDirL != dirContent[0].cend())
     {
-        handle_single_side_entry(make_path(dirPath, itDir1->filename), itDir1->fileType, FileType::NoFile);
-        itDir1++;
+        handle_single_side_entry(make_path(dirPath, itDirL->filename), itDirL->fileType, Side::Left);
+        itDirL++;
     }
-    while (itDir2 != dirContent2.cend())
+    while (itDirR != dirContent[1].cend())
     {
-        handle_single_side_entry(make_path(dirPath, itDir2->filename), FileType::NoFile, itDir2->fileType);
-        itDir2++;
+        handle_single_side_entry(make_path(dirPath, itDirR->filename), itDirR->fileType, Side::Right);
+        itDirR++;
     }
 
     // add sub directories to the stack, in the proper order
