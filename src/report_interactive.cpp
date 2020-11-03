@@ -28,7 +28,7 @@ along with diff-dir. If not, see <https://www.gnu.org/licenses/>.
 /// Interactive report using terminal
 struct ReportInteractive : public Report
 {
-    ReportInteractive(const Context &_ctx);
+    ReportInteractive(Context &_ctx);
     ~ReportInteractive() override = default;
 
     void operator()(ReportEntry &&reportEntry) override;
@@ -36,7 +36,7 @@ struct ReportInteractive : public Report
     TermApp app;
 };
 
-ReportInteractive::ReportInteractive(const Context &_ctx)
+ReportInteractive::ReportInteractive(Context &_ctx)
     : Report{_ctx}, app{_ctx, "DiffDir: " + ctx.root[0].path + " <-> " + ctx.root[1].path}
 {
 }
@@ -46,7 +46,7 @@ void ReportInteractive::operator()(ReportEntry &&reportEntry)
     app.reportQueue.push(std::move(reportEntry));
 }
 
-std::unique_ptr<Report> makeReportInteractive(const Context &ctx)
+std::unique_ptr<Report> makeReportInteractive(Context &ctx)
 {
     return std::make_unique<ReportInteractive>(ctx);
 }

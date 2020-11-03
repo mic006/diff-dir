@@ -146,7 +146,8 @@ void TermAppListWindow::determineDisplayContent(int innerHeight, int contentSize
     TermAppWindow::determineDisplayContent(innerHeight, contentSize);
 
     // indicate the index of selection to user
-    footer.textMiddle = std::to_string(ctx.selectedIndex + 1) + "/" + std::to_string(ctx.diffs.size());
+    if (ctx.diffs.size() > 0)
+        footer.textMiddle = std::to_string(ctx.selectedIndex + 1) + "/" + std::to_string(ctx.diffs.size());
 }
 
 void TermAppListWindow::moveSelection(MoveKind mv)
@@ -556,7 +557,7 @@ void TermAppDetailWindow::move(MoveKind mv)
     // clipping of firstDisplayedIndex is done in determineDisplayContent() to handle screen resize
 }
 
-TermApp::TermApp(const Context &_diffDirCtx, const std::string &title)
+TermApp::TermApp(Context &_diffDirCtx, const std::string &title)
     : diffDirCtx{_diffDirCtx}, ctx{_diffDirCtx}, winList{ctx}, winDetail{ctx}, reportQueue{},
       spinnerIndex{0}, spinnerStepCountdown{0}, appThread{}
 {
@@ -770,4 +771,7 @@ void TermApp::run()
             break;
         }
     }
+
+    // stop directory comparison if still on-going
+    diffDirCtx.exitRequested = true;
 }

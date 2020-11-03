@@ -143,4 +143,4 @@ protected:
 std::unique_ptr<Report> makeReportCompact(const Context &ctx);
 
 /// Build a ReportInteractive: interactive terminal application
-std::unique_ptr<Report> makeReportInteractive(const Context &ctx);
+std::unique_ptr<Report> makeReportInteractive(Context &ctx);

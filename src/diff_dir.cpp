@@ -261,7 +261,7 @@ void DiffDir::operator()()
 {
     dirStack.emplace("."); // start with empty relPath = root
 
-    while (not dirStack.empty())
+    while (not ctx.exitRequested and not dirStack.empty())
     {
         const std::string dirPath = std::move(dirStack.top());
         dirStack.pop();

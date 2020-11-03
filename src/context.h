@@ -62,7 +62,8 @@ public:
         : settings{_settings},
           cfg{config},
           dispatcher{},
-          ignoreFilter{}
+          ignoreFilter{},
+          exitRequested{false}
     {
     }
 
@@ -71,6 +72,7 @@ public:
     RootPath root[2];                         ///< root on left and right sides
     std::unique_ptr<Dispatcher> dispatcher;   ///< dispatcher for report and file comparison
     std::optional<IgnoreFilter> ignoreFilter; ///< filter to ignore some paths during the diff
+    std::atomic<bool> exitRequested;          ///< whether user requested exit
 };
 
 /** Get the yaml configuration.

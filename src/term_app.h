@@ -230,7 +230,7 @@ private:
 /// Terminal application
 struct TermApp
 {
-    TermApp(const Context &_diffDirCtx, const std::string &title);
+    TermApp(Context &_diffDirCtx, const std::string &title);
     ~TermApp();
 
     // not copyable (detect unwanted copies)
@@ -246,7 +246,7 @@ struct TermApp
     /// Thread loop
     void run();
 
-    const Context &diffDirCtx;                ///< context for the comparison
+    Context &diffDirCtx;                      ///< context for the comparison
     TermAppContext ctx;                       ///< context to perform drawing via TermUi
     TermAppListWindow winList;                ///< window handling the list of differences
     TermAppDetailWindow winDetail;            ///< window handling the details of one difference
