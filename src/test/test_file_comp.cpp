@@ -31,12 +31,9 @@ along with diff-dir. If not, see <https://www.gnu.org/licenses/>.
 TEST(FileCompTest, all)
 {
     YAML::Node config{};
-    Context ctx{{false,
-                 false,
-                 4096 * 16},
-                config};
+    Context ctx{{false, false, 4096 * 16}, config};
     for (int side = 0; side < 2; side++)
-        ctx.root[side] = std::move(RootPath{"."}); // use current working directory
+        ctx.root[side] = RootPath{"."}; // use current working directory
     FileCompareContent fileComp{ctx};
 
     const std::string relPath = "build/test-diff-dir";

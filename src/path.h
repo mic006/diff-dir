@@ -31,6 +31,8 @@ along with diff-dir. If not, see <https://www.gnu.org/licenses/>.
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <utility>
+#include <vector>
 
 #include "log.h"
 
@@ -91,10 +93,8 @@ struct ScopedFd
         return ScopedFd{fd};
     }
 
-    ScopedFd()
-        : fd{-1} {}
-    ScopedFd(int _fd)
-        : fd{_fd} {}
+    ScopedFd() : fd{-1} {}
+    ScopedFd(int _fd) : fd{_fd} {}
     ~ScopedFd()
     {
         if (fd >= 0)
@@ -106,10 +106,7 @@ struct ScopedFd
     ScopedFd &operator=(const ScopedFd &) = delete;
 
     // movable
-    ScopedFd(ScopedFd &&other) noexcept
-        : fd{std::exchange(other.fd, -1)}
-    {
-    }
+    ScopedFd(ScopedFd &&other) noexcept : fd{std::exchange(other.fd, -1)} {}
     ScopedFd &operator=(ScopedFd &&other) noexcept
     {
         std::swap(fd, other.fd);
@@ -134,11 +131,8 @@ typedef std::vector<DirEntry> dir_content_type;
 /// Path and file manipulation for the purpose of DiffDir
 struct DirEntry
 {
-    explicit DirEntry(
-        const std::string &_filename,
-        FileType::EnumType _fileType = FileType::Unknown)
-        : filename{_filename},
-          fileType{_fileType}
+    explicit DirEntry(const std::string &_filename, FileType::EnumType _fileType = FileType::Unknown)
+        : filename{_filename}, fileType{_fileType}
     {
     }
 

@@ -25,6 +25,7 @@ along with termui. If not, see <https://www.gnu.org/licenses/>.
 #pragma once
 
 #include <cstring>
+#include <limits>
 #include <stdexcept>
 #include <vector>
 
@@ -35,15 +36,13 @@ namespace termui
 /// Base class for Termui exceptions
 struct TermUiException : public std::runtime_error
 {
-    TermUiException(const std::string &message)
-        : std::runtime_error{message} {}
+    TermUiException(const std::string &message) : std::runtime_error{message} {}
 };
 
 /// Termui exceptions related to system calls, with display of errno
 struct TermUiExceptionErrno : public TermUiException
 {
-    TermUiExceptionErrno(const std::string &message)
-        : TermUiException{message + " error : " + std::strerror(errno)} {}
+    TermUiExceptionErrno(const std::string &message) : TermUiException{message + " error : " + std::strerror(errno)} {}
 };
 
 /** Convert UTF-8 encoded string to u32string.
@@ -144,8 +143,7 @@ public:
         return Event{ctrlMask | ('A' + letterOffset)};
     }
 
-    constexpr Event(char32_t v = invalidMask)
-        : m_value{v} {}
+    constexpr Event(char32_t v = invalidMask) : m_value{v} {}
 
     bool isValid() const
     {
@@ -197,8 +195,7 @@ struct Color
      */
     static Color fromHsv(float hue, float saturation, float value);
 
-    constexpr Color(uint32_t v = std::numeric_limits<uint32_t>::max())
-        : m_value{v} {}
+    constexpr Color(uint32_t v = std::numeric_limits<uint32_t>::max()) : m_value{v} {}
 
     /** Whether color is encoded from palette.
      * @return whether color is encoded from palette
@@ -275,8 +272,7 @@ struct Effect
     static constexpr int kFirstBit = 1;
     static constexpr int kLastBit = 9;
 
-    constexpr Effect(uint32_t v = 0)
-        : m_value{v} {}
+    constexpr Effect(uint32_t v = 0) : m_value{v} {}
 
     uint32_t value() const
     {
@@ -382,8 +378,7 @@ struct TextAlignment
     /// When string is too long, clip the start and add an ellipsis ("…ong text")
     static constexpr uint32_t kClipStart = 1 << 2;
 
-    constexpr TextAlignment(uint32_t v = 0)
-        : m_value{v} {}
+    constexpr TextAlignment(uint32_t v = 0) : m_value{v} {}
 
     bool isClipStart() const
     {
@@ -409,40 +404,40 @@ private:
 /** Terminal Ui instance.
  *
  * Provides access and abstraction of the terminal.
- * 
+ *
  * ### Minimal usage
- * 
+ *
  * - instantiate a TermUi
  * - use the addString*() methods to add content to the screen
  * - call waitForEvent() to wait for user interaction
  * - handle at least the following events:
  *   - kCtrlC, kSigInt, kSigTerm to quit the application
  *   - kTermResize to redraw the screen based on its new size
- * 
+ *
  * You can also look at the demo for a concrete and complete example.
- * 
+ *
  * ### Screen management
- * 
+ *
  * TermUi contains a framebuffer, which is a temporary buffer where the application can
  * draw its content before it is displayed. All the addString*() methods modify the framebuffer,
  * not the displayed screen.
- * 
+ *
  * Once all the drawing is done, the application shall call waitForEvent()
  * to update the screen content and get a potential event (keyboard or signal).
- * 
+ *
  * It is important to call waitForEvent() often, to:
  * - have a responsive interface
  * - get and handle the screen resize event (otherwise your screen may be garbaged)
- * 
+ *
  * ### Keyboard management
- * 
+ *
  * The terminal sends the pressed key in an inconsistent fashion, so you cannot get all the keys
  * with all the modifiers:
  * - some modifiers are ignored for some keys, like Ctrl+1
  * - some special keys have the same mapping as Ctrl+Key, like Ctrl+M == Enter
- * 
+ *
  * Play with the demo to see which keys you can capture.
- * 
+ *
  * @note you shall have a single instance active at a time.
  */
 class TermUi
@@ -487,11 +482,11 @@ public:
     void addString(int y, int x, const std::string &str, const RenderCtx &renderCtx);
 
     /** Add a string to the framebuffer, with a fixed length.
-     * 
+     *
      * Display the given string with the given length:
      * - if the string is too long, it is clipped and last character is an ellipsis '…'
      * - if the string is too short, spaces are added to align the text as requested
-     * 
+     *
      * @param[in] y          line / row index, starting from 0
      * @param[in] x          column index, starting from 0
      * @param[in] str        UTF-8 string
@@ -501,17 +496,20 @@ public:
      * @param[in] colorBg    background color
      * @param[in] effect     text effect
      */
-    void addStringN(int y, int x, const std::string &str, int width, TextAlignment alignment, Color colorFg, Color colorBg, Effect effect = 0);
+    void addStringN(int y, int x, const std::string &str, int width, TextAlignment alignment, Color colorFg,
+                    Color colorBg, Effect effect = 0);
     void addStringN(int y, int x, const std::string &str, int width, TextAlignment alignment, Effect effect = 0);
-    void addStringN(int y, int x, const std::string &str, int width, TextAlignment alignment, const RenderCtx &renderCtx);
+    void addStringN(int y, int x, const std::string &str, int width, TextAlignment alignment,
+                    const RenderCtx &renderCtx);
 
     /** Add up to 3 strings to the framebuffer, with a fixed length.
-     * 
+     *
      * Within the given box (from x to x+width), display the 3 given strings on left, middle and right.
      * Unneeded strings can be set to the empty string.
      * If there is enough space, padding is added between the strings to achieve the wanted length.
-     * If there is not enough space, the strings may be clipped (last character will be an ellipsis '…') to avoid overlaps.
-     * 
+     * If there is not enough space, the strings may be clipped (last character will be an ellipsis '…') to avoid
+     * overlaps.
+     *
      * @param[in] y          line / row index, starting from 0
      * @param[in] x          column index, starting from 0
      * @param[in] strLeft    UTF-8 string, on left side
@@ -522,22 +520,19 @@ public:
      * @param[in] colorBg    background color
      * @param[in] effect     text effect
      */
-    void addStringsN(int y, int x,
-                     const std::string &strLeft, const std::string &strMiddle, const std::string &strRight,
-                     int width, Color colorFg, Color colorBg, Effect effect = 0);
-    void addStringsN(int y, int x,
-                     const std::string &strLeft, const std::string &strMiddle, const std::string &strRight,
-                     int width, Effect effect = 0);
-    void addStringsN(int y, int x,
-                     const std::string &strLeft, const std::string &strMiddle, const std::string &strRight,
-                     int width, const RenderCtx &renderCtx);
+    void addStringsN(int y, int x, const std::string &strLeft, const std::string &strMiddle,
+                     const std::string &strRight, int width, Color colorFg, Color colorBg, Effect effect = 0);
+    void addStringsN(int y, int x, const std::string &strLeft, const std::string &strMiddle,
+                     const std::string &strRight, int width, Effect effect = 0);
+    void addStringsN(int y, int x, const std::string &strLeft, const std::string &strMiddle,
+                     const std::string &strRight, int width, const RenderCtx &renderCtx);
 
     /** Add a formatted UTF-32 string to the framebuffer, with a maximum length.
-     * 
+     *
      * Display the given string, limited to the given maximum length.
      * The string may contain special formatting values generated with U32Format:
      * they are interpreted to modify the graphic rendering (effect, fg/bg color).
-     * 
+     *
      * @param[in] y             line / row index, starting from 0
      * @param[in] x             column index, starting from 0
      * @param[in] formattedStr  formatted UTF-32 string
@@ -546,11 +541,12 @@ public:
     void addFString(int y, int x, const std::u32string &formattedStr, int width);
 
     /** Wait for an event.
-     * 
+     *
      * This methods call publish() to update the screen from the framebuffer (if needed), and then waits
      * (if requested and if needed) for an event.
-     * 
-     * @param[in] timeoutMs  time to wait, in ms; 0 allows to retrieve an available event without waiting; -1 waits forever
+     *
+     * @param[in] timeoutMs  time to wait, in ms; 0 allows to retrieve an available event without waiting; -1 waits
+     * forever
      * @return captured event
      */
     Event waitForEvent(int timeoutMs = -1);
@@ -615,13 +611,8 @@ private:
     void updateColorSetting(Color color, bool isFg);
 
     /// Update graphic settings based on the current state
-    void updateGraphicSettings(
-        Effect &currentEffect,
-        Color &currentFg,
-        Color &currentBg,
-        Effect wantedEffect,
-        Color wantedFg,
-        Color wantedBg);
+    void updateGraphicSettings(Effect &currentEffect, Color &currentFg, Color &currentBg, Effect wantedEffect,
+                               Color wantedFg, Color wantedBg);
 
     internal::ScopedSignalCatcher m_sigCatcher; ///< signal catcher
     internal::ScopedBufferedTty m_tty;          ///< tty handler
@@ -652,19 +643,18 @@ inline void TermUi::addStringN(int y, int x, const std::string &str, int width, 
 {
     addStringN(y, x, str, width, alignment, m_colorFg, m_colorBg, effect);
 }
-inline void TermUi::addStringN(int y, int x, const std::string &str, int width, TextAlignment alignment, const RenderCtx &renderCtx)
+inline void TermUi::addStringN(int y, int x, const std::string &str, int width, TextAlignment alignment,
+                               const RenderCtx &renderCtx)
 {
     addStringN(y, x, str, width, alignment, renderCtx.colorFg, renderCtx.colorBg, renderCtx.effect);
 }
-inline void TermUi::addStringsN(int y, int x,
-                                const std::string &strLeft, const std::string &strMiddle, const std::string &strRight,
-                                int width, Effect effect)
+inline void TermUi::addStringsN(int y, int x, const std::string &strLeft, const std::string &strMiddle,
+                                const std::string &strRight, int width, Effect effect)
 {
     addStringsN(y, x, strLeft, strMiddle, strRight, width, m_colorFg, m_colorBg, effect);
 }
-inline void TermUi::addStringsN(int y, int x,
-                                const std::string &strLeft, const std::string &strMiddle, const std::string &strRight,
-                                int width, const RenderCtx &renderCtx)
+inline void TermUi::addStringsN(int y, int x, const std::string &strLeft, const std::string &strMiddle,
+                                const std::string &strRight, int width, const RenderCtx &renderCtx)
 {
     addStringsN(y, x, strLeft, strMiddle, strRight, width, renderCtx.colorFg, renderCtx.colorBg, renderCtx.effect);
 }

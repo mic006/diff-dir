@@ -32,8 +32,7 @@ along with diff-dir. If not, see <https://www.gnu.org/licenses/>.
 /// Parameters to manage file comparison in a dedicated thread
 struct FileCompParam
 {
-    FileCompParam(ReportEntry &&_entry, size_t _fileSize)
-        : entry{std::move(_entry)}, fileSize{_fileSize} {}
+    FileCompParam(ReportEntry &&_entry, size_t _fileSize) : entry{std::move(_entry)}, fileSize{_fileSize} {}
 
     ~FileCompParam() = default;
 
@@ -74,11 +73,7 @@ private:
 };
 
 DispatcherMultiThread::DispatcherMultiThread(const Context &context, std::unique_ptr<Report> report)
-    : Dispatcher{context, std::move(report)},
-      m_fileComp{context},
-      m_reportQueue{},
-      m_fileCompQueue{},
-      m_reportThread{},
+    : Dispatcher{context, std::move(report)}, m_fileComp{context}, m_reportQueue{}, m_fileCompQueue{}, m_reportThread{},
       m_fileCompThread{&DispatcherMultiThread::taskFileComp, this}
 {
     if (m_report)
@@ -102,7 +97,7 @@ void DispatcherMultiThread::postFilledReport(ReportEntry &&entry)
     // report is already ready: publish the value
     entryPromise.set_value(std::move(entry));
     // push the associated future
-    m_reportQueue.push(std::move(entryPromise.get_future()));
+    m_reportQueue.push(entryPromise.get_future());
 }
 
 void DispatcherMultiThread::contentCompareWithPartialReport(ReportEntry &&entry, size_t fileSize)

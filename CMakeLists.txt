@@ -1,5 +1,5 @@
 # Project
-cmake_minimum_required(VERSION 3.0.0)
+cmake_minimum_required(VERSION 3.5)
 project(Diff-Dir VERSION 0)
 
 # C++ compiler settings
@@ -8,7 +8,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS ON)
 string(APPEND CMAKE_CXX_FLAGS " -Wall -Wextra -Werror -pipe")
 string(APPEND CMAKE_CXX_FLAGS_DEBUG " -fsanitize=address -fsanitize=undefined")
-string(APPEND CMAKE_CXX_FLAGS_RELEASE " -flto -s")
+string(APPEND CMAKE_CXX_FLAGS_RELEASE " -flto")
 
 # get APP_VERSION from git describe
 find_package(Git QUIET REQUIRED)

@@ -25,6 +25,7 @@ along with termui. If not, see <https://www.gnu.org/licenses/>.
 #pragma once
 
 #include <array>
+#include <cstdint>
 #include <cuchar>
 #include <fcntl.h>
 #include <signal.h>
@@ -50,10 +51,8 @@ struct ScopedFd
         return ScopedFd{::open(path.c_str(), flags)};
     }
 
-    ScopedFd()
-        : fd{-1} {}
-    ScopedFd(int _fd)
-        : fd{_fd} {}
+    ScopedFd() : fd{-1} {}
+    ScopedFd(int _fd) : fd{_fd} {}
     ~ScopedFd()
     {
         if (isValid())
@@ -65,10 +64,7 @@ struct ScopedFd
     ScopedFd &operator=(const ScopedFd &) = delete;
 
     // movable
-    ScopedFd(ScopedFd &&other) noexcept
-        : fd{std::exchange(other.fd, -1)}
-    {
-    }
+    ScopedFd(ScopedFd &&other) noexcept : fd{std::exchange(other.fd, -1)} {}
     ScopedFd &operator=(ScopedFd &&other) noexcept
     {
         std::swap(fd, other.fd);
@@ -96,9 +92,9 @@ struct ScopedSignalCatcher
     ScopedSignalCatcher(const ScopedSignalCatcher &) = delete;
     ScopedSignalCatcher &operator=(const ScopedSignalCatcher &) = delete;
 
-    // not movable
-    ScopedSignalCatcher(ScopedSignalCatcher &&) noexcept = delete;
-    ScopedSignalCatcher &operator=(ScopedSignalCatcher &&) noexcept = delete;
+    // movable
+    ScopedSignalCatcher(ScopedSignalCatcher &&) noexcept = default;
+    ScopedSignalCatcher &operator=(ScopedSignalCatcher &&) noexcept = default;
 
     /** Signal handler
      * @param[in] signum  signal number
@@ -122,6 +118,10 @@ struct ScopedTty : public ScopedFd
     ScopedTty();
     ~ScopedTty();
 
+    // movable
+    ScopedTty(ScopedTty &&) noexcept = default;
+    ScopedTty &operator=(ScopedTty &&) noexcept = default;
+
     /// Retrieve the current screen size, update width and height fields
     void retrieveSize();
 
@@ -134,6 +134,10 @@ struct ScopedTty : public ScopedFd
 struct ScopedBufferedTty : public ScopedTty
 {
     ScopedBufferedTty();
+
+    // movable
+    ScopedBufferedTty(ScopedBufferedTty &&) noexcept = default;
+    ScopedBufferedTty &operator=(ScopedBufferedTty &&) noexcept = default;
 
     /// Read data from tty, trying to fill rxBuffer
     void rxFd();

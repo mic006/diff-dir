@@ -23,6 +23,8 @@ along with diff-dir. If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <algorithm>
+#include <array>
+#include <cstdint>
 #include <ctime>
 #include <dirent.h>
 #include <grp.h>
@@ -106,9 +108,7 @@ void RootPath::getSortedDirContent(const std::string &relPath, dir_content_type 
         std::string filename = dirEntry->d_name;
         if (filename != "." and filename != "..")
         {
-            result.emplace_back(
-                dirEntry->d_name,
-                filetype_from_dt(dirEntry->d_type));
+            result.emplace_back(dirEntry->d_name, filetype_from_dt(dirEntry->d_type));
         }
     }
 

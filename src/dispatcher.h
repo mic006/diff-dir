@@ -29,7 +29,7 @@ along with diff-dir. If not, see <https://www.gnu.org/licenses/>.
 // forward reference
 class Context;
 class Report;
-class ReportEntry;
+struct ReportEntry;
 
 /** Dispatcher for reports and file comparison.
  * Base class to limit the different processing between single thread
@@ -38,8 +38,7 @@ class ReportEntry;
 class Dispatcher
 {
 public:
-    Dispatcher(const Context &context, std::unique_ptr<Report> report)
-        : ctx{context}, m_report{std::move(report)} {};
+    Dispatcher(const Context &context, std::unique_ptr<Report> report) : ctx{context}, m_report{std::move(report)} {};
 
     virtual ~Dispatcher() = default;
 
